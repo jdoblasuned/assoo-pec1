@@ -3,13 +3,8 @@ shopt -s extglob
 
 ### Solicitar fecha ###
 #Verificar números enteros
-is_integer(){
-  if [ "$1" = +([0-9]) ]; then
-    return 0
-  else
-    echo "La fecha solo puede tener números enteros"
-    return 1
-  fi
+is_integer() {
+  [[ $1 == +([0-9]) ]]
 }
 
 ask_date() {
@@ -60,7 +55,7 @@ month_days() {
 ### Comprobar que la fecha es correcta ###
 # Día correcto
 right_day(){
-  if (( $day > 0 && $day <= $(month_days "$month" "$year") )); then
+  if is_integer $day && (( $day > 0 && $day <= $(month_days "$month" "$year") )); then
     return 0
   else
     return 1 
@@ -69,7 +64,7 @@ right_day(){
 
 # Mes correcto
 right_month(){
-  if (( $month > 0 && $month <= 12 )); then
+  if is_integer $month && (( $month > 0 && $month <= 12 )); then
     return 0
   else
     return 1 
@@ -78,7 +73,7 @@ right_month(){
 
 # Año correcto
 right_year(){
-  if (( $year > 0 )); then
+  if is_integer $year && (( $year > 0 )); then
     return 0
   else
     return 1 
@@ -102,4 +97,4 @@ until right_date; do
   ask_date
 done
 
-printf "El mes $month del año $year tiene $(month_days $month $year) días\n"
+echo $day" " $month" " $year

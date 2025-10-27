@@ -1,11 +1,19 @@
 #! /bin/bash
 
+###########################################
+#                                         #
+#          Funciones auxiliares           #
+#                                         #
+###########################################
 
-# Función para imprimir el menú de la aplicación.
+
+###### Imprimir el menú de la aplicación #####
+
 # ToDo:
 #	Recibir input.----- Nota: Añadir en el programa principal
 #	Añadir variable de selección ---- Nota: Igual que el punto anterior
 #	Crear switch para cada opción ---- Nota: Igual que el punto anterior
+#	Posibilidad de cambiar el switch por un select
 
 function printMenu {
 	printf  "
@@ -22,66 +30,144 @@ function printMenu {
 	===========================================\n"
 }
 
-# Función para convertir los meses numéricos a texto.
-# Se podría considera condicional múltiple.
+#############################################
+#         Gestión de las fechas             #
+#############################################
 
-function numToMonth {
+shopt -s extglob
+
+### Solicitar fecha ###
+#Verificar números enteros
+is_integer(){
+  [[ "$1" == +([0-9]) ]]
+}
+
+ask_date() {
+printf "Día del vuelo: "
+read day
+printf "Mes del vuelo (numérico): "
+read n_month
+printf "Año del vuelo: "
+read year
+}
+
+### Función para comprobar si un año es bisiesto ###
+leap_year() {
+  # Utilizamos el primer argumento que se pase a la función
+  local year=$1
+
+  if (( (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0) )); then
+    # 0 se considera True
+    return 0
+  else
+    # 1 se considera False
+    return 1
+  fi
+}
+
+### Función para comprobar los días que tiene el mes ###
+# Primer argumento: Mes
+# Segundo argumento: Año
+month_days() {
+  local month=$1
+  local year=$2
+  local max_days
+
+  case "$month" in
+    1|3|5|7|8|10|12) max_days=31;; 
+    4|6|9|11) max_days=30;;
+    2)if leap_year $year; then
+        max_days=29
+      else
+        max_days=28
+      fi;;
+  esac
+
+  echo $max_days
+}
+
+
+### Comprobar que la fecha es correcta ###
+# Día correcto
+right_day(){
+  if is_integer "$day" && (( $day > 0 && $day <= $(month_days "$n_month" "$year") )); then
+    return 0
+  else
+    return 1 
+  fi
+}
+
+# Mes correcto
+right_month(){
+  if is_integer "$n_month" && (( $n_month > 0 && $n_month <= 12 )); then
+    return 0
+  else
+    return 1 
+  fi
+}
+
+# Año correcto
+right_year(){
+  if is_integer "$year" && (( $year > 0 )); then
+    return 0
+  else
+    return 1 
+  fi
+}
+
+# Fecha válida
+right_date(){
+  if (right_month "$n_month" && right_day "$day" && right_year "$year"); then 
+    return 0
+  else
+    return 1 
+  fi
+}
+### Convertir meses numéricos a texto ###
+n2t_month () {
   case $n_month in 
-    1)
-      month='enero';;
-    2) 
-      month='febrero';;
-    3)
-      month='marzo';;
-    4) 
-      month='abril';;
-    5)
-      month='mayo';;
-    6) 
-      month='junio';;
-    7)
-      month='julio';;
-    8) 
-      month='agosto';;
-    9)
-      month='septiembre';;
-    10) 
-      month='octubre';;
-    11)
-      month='noviembre';;
-    12) 
-      month='diciembre';;
+    1) month='enero';;
+    2) month='febrero';;
+    3) month='marzo';;
+    4) month='abril';;
+    5) month='mayo';;
+    6) month='junio';;
+    7) month='julio';;
+    8) month='agosto';;
+    9) month='septiembre';;
+    10) month='octubre';;
+    11) month='noviembre';;
+    12) month='diciembre';;
   esac
 }
 
-# Función para registrar pasajeros de un vuelo.
-#	Normas de formato de datos (nombre y fechas)
-#	Mostrar mensajes por pantalla
+
+##### Registrar pasajeros #####
 # Operaciones con cadenas (concatenar)
-# Mostrar por pantalla reesultados obtenidos a partir operar sobre argumentos o entradas de teclado
-# Manejo de archivos (crear y eliminar, almacenar información)
-function regPassenger {
+regPassenger () {
   printf "Nombre y apellidos del pasajero: "
+  # TODO: Cambiar read por función de formato correcto
   read name
   printf "Identificador del vuelo: "
   read flight
-  printf "Día del vuelo: "
-  read day 
-  printf "Mes del vuelo: "
-  read n_month
-  numToMonth;
-  printf "Año del vuelo: "
-  read year
+  ask_date
+  until right_date; do 
+    echo "Introduce una fecha válida"
+    ask_date
+  done
   printf "Destino: "
   read destination
-  echo $name:$flight:$day" de "$month" de "$year:$destination > ./temp.txt
-  echo ./temp.txt >> ./registros.txt
+
+  n2t_month 
+
+  echo $name"|"$flight"|"$day" de "$month" de "$year"|"$destination 
+  echo $name"|"$flight"|"$day" de "$month" de "$year"|"$destination >> ./registros.txt
+
   printf "Registro completado con éxito\n"
-  awk -F: 'BEGIN{printf "%-40s %-8s %-25s %-25s\n", "Nombre", "Vuelo", "Fecha", "Destino"} {printf "%-40s %-8s %-25s %-25s\n", $1,$2,$3,$4}' ./temp.txt
-  rm ./temp.txt
+  awk -F"|" 'BEGIN{printf "%-40s %-8s %-25s %-25s\n", "Nombre", "Vuelo", "Fecha", "Destino"} END {printf "%-40s %-8s %-25s %-25s\n", $1, $2, $3, $4}' ./registros.txt
 }
 
-# Función para listar pasajeros de un vuelo.
+##### Listar pasajeros de un vuelo #####
 # Lectura línea a línea de archivo.
 #	Con AWK
 #	Pedir input: id vuelo
@@ -96,17 +182,25 @@ function regPassenger {
 #		Pag. 169 bash.pdf
 #	Se podría poner argumentos variables para buscar directamente con main.sh buscar nombre pasajero
 
-# Función para eliminar pasajero
+##### Eliminar pasajero #####
 
-# Función para modificar registro
+##### Modificar registro #####
 
-# Función para consultar próximos vuelos
+##### Consultar próximos vuelos #####
 # Consulta de procesos activos y gestión de información sobre ellos.
 # ToDo: 
 #	Explicar -A -c -m -o 
-function nextFlights {
+next_flights () {
 echo "Próximos vuelos: " 
 ps -Acmo pid,command,pmem,pcpu | head -n 6
 }
 
-regPassenger;
+
+###########################################
+#                                         #
+#          Programa principal             #
+#                                         #
+###########################################
+
+regPassenger
+
