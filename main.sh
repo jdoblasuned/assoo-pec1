@@ -34,6 +34,7 @@ function printMenu {
 #         Gestión de las fechas             #
 #############################################
 
+# Explicar extglob
 shopt -s extglob
 
 ### Solicitar fecha ###
@@ -43,12 +44,12 @@ is_integer(){
 }
 
 ask_date() {
-printf "Día del vuelo: "
-read day
-printf "Mes del vuelo (numérico): "
-read n_month
-printf "Año del vuelo: "
-read year
+  printf "Día del vuelo: "
+  read day
+  printf "Mes del vuelo (numérico): "
+  read n_month
+  printf "Año del vuelo: "
+  read year
 }
 
 ### Función para comprobar si un año es bisiesto ###
@@ -160,11 +161,19 @@ regPassenger () {
 
   n2t_month 
 
-  echo $name"|"$flight"|"$day" de "$month" de "$year"|"$destination 
-  echo $name"|"$flight"|"$day" de "$month" de "$year"|"$destination >> ./registros.txt
+  echo $name"|"$flight"|"$day" de "$month" de "$year"|"$destination > ./temp.txt
+  cat ./temp.txt >> ./registros.txt
 
-  printf "Registro completado con éxito\n"
-  awk -F"|" 'BEGIN{printf "%-40s %-8s %-25s %-25s\n", "Nombre", "Vuelo", "Fecha", "Destino"} END {printf "%-40s %-8s %-25s %-25s\n", $1, $2, $3, $4}' ./registros.txt
+  if  [[ "$(tail -n 1 ./registros.txt)" == "$(cat ./temp.txt)" ]]
+  then
+    echo "=================================================================================="
+    echo "Registro completado con éxito"
+    awk -F"|" 'BEGIN{printf "%-40s %-8s %-25s %-25s\n", "Nombre", "Vuelo", "Fecha", "Destino"} END {printf "%-40s %-8s %-25s %-25s\n",$1,$2,$3,$4}' ./registros.txt
+    rm ./temp.txt
+  else
+    echo "Se ha producido un error" 
+    return 1
+  fi
 }
 
 ##### Listar pasajeros de un vuelo #####
