@@ -34,7 +34,7 @@ function printMenu {
 #         Gestión de las fechas             #
 #############################################
 
-# Explicar extglob
+# TODO: Explicar extglob
 shopt -s extglob
 
 ### Solicitar fecha ###
@@ -124,6 +124,7 @@ right_date(){
     return 1 
   fi
 }
+
 ### Convertir meses numéricos a texto ###
 n2t_month () {
   case $n_month in 
@@ -191,6 +192,13 @@ regPassenger () {
 #		Pag. 169 bash.pdf
 #	Se podría poner argumentos variables para buscar directamente con main.sh buscar nombre pasajero
 
+list_flight () {
+  local flight=$1
+  echo $flight
+
+  awk -F "|" -v flight="$flight" 'BEGIN{ printf "Pasajeros del vuelo %s:\n", flight } $2 == flight { printf "- %-40s %-25s %-25s\n",$1,$3,$4 } ' ./registros.txt
+}
+
 ##### Eliminar pasajero #####
 
 ##### Modificar registro #####
@@ -211,5 +219,6 @@ ps -Acmo pid,command,pmem,pcpu | head -n 6
 #                                         #
 ###########################################
 
-regPassenger
-
+echo "Código del vuelo a listar:"
+read vuelo
+list_flight $vuelo
