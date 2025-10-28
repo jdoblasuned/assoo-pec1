@@ -43,7 +43,8 @@ is_integer(){
   [[ "$1" == +([0-9]) ]]
 }
 
-ask_date() {
+#Obtener los datos
+get_date() {
   printf "Día del vuelo: "
   read day
   printf "Mes del vuelo (numérico): "
@@ -125,6 +126,15 @@ right_date(){
   fi
 }
 
+### Solicitar fecha con formato correcto ###
+ask_date () {
+  get_date
+  until right_date; do 
+    echo "Introduce una fecha válida"
+    get_date
+  done
+}
+
 ### Convertir meses numéricos a texto ###
 n2t_month () {
   case $n_month in 
@@ -153,10 +163,6 @@ regPassenger () {
   printf "Identificador del vuelo: "
   read flight
   ask_date
-  until right_date; do 
-    echo "Introduce una fecha válida"
-    ask_date
-  done
   printf "Destino: "
   read destination
 
