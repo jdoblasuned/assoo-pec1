@@ -168,14 +168,18 @@ regPassenger () {
   printf "Destino: "
   read destination
 
-  echo $name"|"$flight"|"$day" de "$(n2t_month $n_month)" de "$year"|"$destination > ./temp.txt
+  # Se guarda un archivo temporal para hacer una comprobación de que se ha pasado al registro
+  echo $name"|"$flight"|"$day"|"$(n2t_month $n_month)"|"$year"|"$destination > ./temp.txt
   cat ./temp.txt >> ./registros.txt
 
+  # Confirmación de pasajero añadido al registro
+  # Al imprimir el END las variables mantienen el valor del último registro que almacenan
+  # en este caso, el último añadido.
   if  [[ "$(tail -n 1 ./registros.txt)" == "$(cat ./temp.txt)" ]]
   then
-    echo "=================================================================================="
-    echo "Registro completado con éxito"
-    awk -F"|" 'BEGIN{printf "%-40s %-8s %-25s %-25s\n", "Nombre", "Vuelo", "Fecha", "Destino"} END {printf "%-40s %-8s %-25s %-25s\n",$1,$2,$3,$4}' ./registros.txt
+    printf "\nRegistro completado con éxito\n"
+    awk -F"|" 'BEGIN{printf "%-40s %-8s %-25s %-25s\n", "Nombre", "Vuelo", "Fecha", "Destino"}
+    END{printf "%-40s %-8s %-2s de %-10s de %-5s %-25s\n",$1,$2,$3,$4,$5,$6}' ./registros.txt
     rm ./temp.txt
   else
     echo "Se ha producido un error" 
@@ -189,6 +193,13 @@ regPassenger () {
 #	Pedir input: id vuelo
 #	Buscar id vuelo e imprimir registros que coincidan.
 #	Se puede añadir argumentos variables para 
+#
+list_flight () {
+  local flight=$1
+
+  awk -F "|" -v flight="$flight" 'BEGIN{ printf "\nPasajeros del vuelo %s:\n", flight } 
+  $2 == flight { printf "- %-40s %-2s de %-10s de %-5s %-25s\n",$1,$3,$4,$5,$6 } ' ./registros.txt
+}
 
 # Función para buscar pasajero
 #	Con AWK
@@ -198,11 +209,11 @@ regPassenger () {
 #		Pag. 169 bash.pdf
 #	Se podría poner argumentos variables para buscar directamente con main.sh buscar nombre pasajero
 
-list_flight () {
-  local flight=$1
-  echo $flight
+search_psg () {
+  local name=$1
 
-  awk -F "|" -v flight="$flight" 'BEGIN{ printf "Pasajeros del vuelo %s:\n", flight } $2 == flight { printf "- %-40s %-25s %-25s\n",$1,$3,$4 } ' ./registros.txt
+  awk -F "|" -v name="$name" 'BEGIN{ printf "\nResultados encontrados:\n" } 
+  tolower($1) ~ tolower(name) { printf "Pasajero: %-40s Vuelo: %-8s Fecha: %-2s de %-10s de %-8s Destino: %-25s\n",$1,$2,$3,$4,$5,$6 } ' ./registros.txt
 }
 
 ##### Eliminar pasajero #####
@@ -225,7 +236,5 @@ ps -Acmo pid,command,pmem,pcpu | head -n 6
 #                                         #
 ###########################################
 
-read number
-n2t_month $number
-
-regPassenger
+read nombre
+search_psg $nombre
