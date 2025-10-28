@@ -37,20 +37,9 @@ function printMenu {
 # TODO: Explicar extglob
 shopt -s extglob
 
-### Solicitar fecha ###
 #Verificar números enteros
 is_integer(){
   [[ "$1" == +([0-9]) ]]
-}
-
-#Obtener los datos
-get_date() {
-  printf "Día del vuelo: "
-  read day
-  printf "Mes del vuelo (numérico): "
-  read n_month
-  printf "Año del vuelo: "
-  read year
 }
 
 ### Función para comprobar si un año es bisiesto ###
@@ -90,35 +79,39 @@ month_days() {
 
 
 ### Comprobar que la fecha es correcta ###
-# Día correcto
-right_day(){
-  if is_integer "$day" && (( $day > 0 && $day <= $(month_days "$n_month" "$year") )); then
-    return 0
-  else
-    return 1 
-  fi
-}
-
-# Mes correcto
-right_month(){
-  if is_integer "$n_month" && (( $n_month > 0 && $n_month <= 12 )); then
-    return 0
-  else
-    return 1 
-  fi
-}
-
-# Año correcto
-right_year(){
-  if is_integer "$year" && (( $year > 0 )); then
-    return 0
-  else
-    return 1 
-  fi
-}
-
-# Fecha válida
 right_date(){
+  local day=$1 
+  local n_month=$2 
+  local year=$3
+
+  # Día correcto
+  right_day(){
+    if is_integer "$day" && (( $day > 0 && $day <= $(month_days "$n_month" "$year") )); then
+     return 0
+   else
+     return 1 
+   fi
+  }
+
+  # Mes correcto
+  right_month(){
+    if is_integer "$n_month" && (( $n_month > 0 && $n_month <= 12 )); then
+      return 0
+    else
+      return 1 
+    fi
+  }
+
+  # Año correcto
+  right_year(){
+    if is_integer "$year" && (( $year > 0 )); then
+      return 0
+    else
+      return 1 
+    fi
+  }
+
+  # Fecha correcta
   if (right_month "$n_month" && right_day "$day" && right_year "$year"); then 
     return 0
   else
@@ -128,15 +121,22 @@ right_date(){
 
 ### Solicitar fecha con formato correcto ###
 ask_date () {
-  get_date
-  until right_date; do 
+  printf "Día del vuelo: "
+  read day
+  printf "Mes del vuelo (numérico): "
+  read n_month
+  printf "Año del vuelo: "
+  read year
+
+  until right_date $day $n_month $year; do 
     echo "Introduce una fecha válida"
-    get_date
+    ask_date 
   done
 }
 
 ### Convertir meses numéricos a texto ###
 n2t_month () {
+  local n_month=$1
   case $n_month in 
     1) month='enero';;
     2) month='febrero';;
@@ -151,6 +151,8 @@ n2t_month () {
     11) month='noviembre';;
     12) month='diciembre';;
   esac
+
+  echo $month
 }
 
 
@@ -166,9 +168,7 @@ regPassenger () {
   printf "Destino: "
   read destination
 
-  n2t_month 
-
-  echo $name"|"$flight"|"$day" de "$month" de "$year"|"$destination > ./temp.txt
+  echo $name"|"$flight"|"$day" de "$(n2t_month $n_month)" de "$year"|"$destination > ./temp.txt
   cat ./temp.txt >> ./registros.txt
 
   if  [[ "$(tail -n 1 ./registros.txt)" == "$(cat ./temp.txt)" ]]
@@ -225,6 +225,7 @@ ps -Acmo pid,command,pmem,pcpu | head -n 6
 #                                         #
 ###########################################
 
-echo "Código del vuelo a listar:"
-read vuelo
-list_flight $vuelo
+read number
+n2t_month $number
+
+regPassenger
