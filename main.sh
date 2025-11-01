@@ -6,7 +6,6 @@
 #                                         #
 ###########################################
 
-
 ###### Imprimir el menú de la aplicación #####
 
 # ToDo:
@@ -200,7 +199,7 @@ regPassenger () {
   read destination
 
   # Se guarda un archivo temporal para hacer una comprobación de que se ha pasado al registro
-  echo $name"|"$flight"|"$day"|"$(n2t_month $n_month)"|"$year"|"$destination > ./temp.txt
+  echo $name'|'$flight'|'$day'|'$(n2t_month $n_month)'|'$year'|'$destination > ./temp.txt
   cat ./temp.txt >> ./registros.txt
 
   # Confirmación de pasajero añadido al registro
@@ -209,7 +208,7 @@ regPassenger () {
   if  [[ "$(tail -n 1 ./registros.txt)" == "$(cat ./temp.txt)" ]]
   then
     printf "\nRegistro completado con éxito\n"
-    awk -F"|" 'BEGIN{printf "%-40s %-8s %-25s %-25s\n", "Nombre", "Vuelo", "Fecha", "Destino"}
+    awk -F'|' 'BEGIN{printf "%-40s %-8s %-25s %-25s\n", "Nombre", "Vuelo", "Fecha", "Destino"}
     END{printf "%-40s %-8s %-2s de %-10s de %-5s %-25s\n",$1,$2,$3,$4,$5,$6}' ./registros.txt
     rm ./temp.txt
   else
@@ -222,17 +221,18 @@ regPassenger () {
 #       Listar pasajeros de un vuelo         #
 ##############################################
   
-# Lectura línea a línea de archivo.
-#	Con AWK
-#	Pedir input: id vuelo
 #	Buscar id vuelo e imprimir registros que coincidan.
 #	Se puede añadir argumentos variables para 
 
 list_flight () {
   local flight=$1
 
-  awk -F "|" -v flight="$flight" 'BEGIN{ printf "\nPasajeros del vuelo %s:\n", flight } 
-  $2 == flight { printf "- %-40s %-2s de %-10s de %-5s %-25s\n",$1,$3,$4,$5,$6 } ' ./registros.txt
+#  awk -F '|' -v flight="$flight" 'BEGIN{ printf "\nPasajeros del vuelo %s:\n", flight } 
+#  $2 == flight { printf "- %-40s %-2s de %-10s de %-5s %-25s\n",$1,$3,$4,$5,$6 } ' ./registros.txt
+
+awk -F '|' -v OFS='|  ' -v flight="$flight" 'BEGIN{ printf "\nPasajeros del vuelo %s:\n", flight } 
+  $2 == flight { print $1,$3,$4 } ' ./registros.txt | column -t -s '|'
+
 }
 
 ##############################################
@@ -242,15 +242,34 @@ list_flight () {
 #	Se podría poner argumentos variables para buscar directamente con main.sh buscar nombre pasajero
 
 search_psg () {
-  local name=$1
+  local name=$*
 
-  awk -F "|" -v name="$name" 'BEGIN{ printf "\nResultados encontrados:\n" } 
-  tolower($1) ~ tolower(name) { printf "Pasajero: %-40s Vuelo: %-8s Fecha: %-2s de %-10s de %-8s Destino: %-25s\n",$1,$2,$3,$4,$5,$6 } ' ./registros.txt
+#  awk -F '|' -v name="$name" 'BEGIN{ printf "\nResultados encontrados:\n" } 
+#  tolower($1) ~ tolower(name) { printf "Pasajero: %-40s Vuelo: %-8s Fecha: %-2s de %-10s de %-8s Destino: %-25s\n",$1,$2,$3,$4,$5,$6 } ' ./registros.txt
+  awk -F '|' -v name="$name" 'BEGIN{ printf "\nResultados encontrados:\n" } 
+  tolower($1) ~ tolower(name) { printf "Pasajero: %s    Vuelo: %s    Fecha: %s    Destino: %s\n",$1,$2,$3,$4 } ' ./registros.txt | column -t -s '|'
 }
 
 ##############################################
 #            Eliminar pasajero               #
 ##############################################
+
+del_by_num () {
+  sed -i '' "$1d" ./registros.txt
+}
+
+del_pass () {
+  local pass=$*
+  local n_pass
+
+  cat ./registros.txt | grep -ni "$pass" | column -t -s '|'
+  echo 'Confirma el pasajero a eliminar introduciendo el número al principio de la línea'
+  read n_pass 
+  echo "Quieres borrar el pasajero: $(gsed -n ""$n_pass"p" ./registros.txt | column -t -s '|' )"
+  read n_pass
+  del_by_num $n_pass
+}
+
 
 ##############################################
 #            Modificar registro              #
@@ -273,4 +292,6 @@ ps -Acmo pid,command,pmem,pcpu | head -n 6
 #                                         #
 ###########################################
 
-regPassenger
+echo 'elige pasajero'
+read pasajero
+del_pass "$pasajero"
