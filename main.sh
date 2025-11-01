@@ -129,7 +129,7 @@ ask_date () {
   read year
 
   until right_date $day $n_month $year; do 
-    echo "Introduce una fecha válida"
+    echo "Introduce una fecha válida" >&2
     ask_date 
   done
 }
@@ -155,13 +155,44 @@ n2t_month () {
   echo $month
 }
 
+#############################################
+#         Gestión de los nombres            #
+#############################################
 
-##### Registrar pasajeros #####
-# Operaciones con cadenas (concatenar)
-regPassenger () {
+### Comprobar si el nombre tiene formato correcto
+right_name () {
+  local name=$1
+  if [[ "$name" =~ ^[[:alpha:][:space:]]+$ ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+### Pedir nombre hasta que el formato sea correcto
+ask_name () {
   printf "Nombre y apellidos del pasajero: "
-  # TODO: Cambiar read por función de formato correcto
   read name
+  until right_name "$name"; do 
+    echo 'Solo puede contener letras y espacios' >&2
+    ask_name 
+  done
+}
+
+###########################################
+#                                         #
+#          Funciones del programa         #
+#                                         #
+###########################################
+
+
+
+#############################################
+#          Registrar pasajeros              #
+#############################################
+
+regPassenger () {
+  ask_name 
   printf "Identificador del vuelo: "
   read flight
   ask_date
@@ -187,13 +218,16 @@ regPassenger () {
   fi
 }
 
-##### Listar pasajeros de un vuelo #####
+##############################################
+#       Listar pasajeros de un vuelo         #
+##############################################
+  
 # Lectura línea a línea de archivo.
 #	Con AWK
 #	Pedir input: id vuelo
 #	Buscar id vuelo e imprimir registros que coincidan.
 #	Se puede añadir argumentos variables para 
-#
+
 list_flight () {
   local flight=$1
 
@@ -201,11 +235,9 @@ list_flight () {
   $2 == flight { printf "- %-40s %-2s de %-10s de %-5s %-25s\n",$1,$3,$4,$5,$6 } ' ./registros.txt
 }
 
-# Función para buscar pasajero
-#	Con AWK
-# 	Pedir input: nombre o parte
-#	Buscar registros que coincidan
-#	Imprimir por variables cada registro
+##############################################
+#            Buscar pasarjero                #
+##############################################
 #		Pag. 169 bash.pdf
 #	Se podría poner argumentos variables para buscar directamente con main.sh buscar nombre pasajero
 
@@ -216,12 +248,17 @@ search_psg () {
   tolower($1) ~ tolower(name) { printf "Pasajero: %-40s Vuelo: %-8s Fecha: %-2s de %-10s de %-8s Destino: %-25s\n",$1,$2,$3,$4,$5,$6 } ' ./registros.txt
 }
 
-##### Eliminar pasajero #####
+##############################################
+#            Eliminar pasajero               #
+##############################################
 
-##### Modificar registro #####
+##############################################
+#            Modificar registro              #
+##############################################
 
-##### Consultar próximos vuelos #####
-# Consulta de procesos activos y gestión de información sobre ellos.
+##############################################
+#        Consultar próximos vuelos           #
+##############################################
 # ToDo: 
 #	Explicar -A -c -m -o 
 next_flights () {
@@ -236,5 +273,4 @@ ps -Acmo pid,command,pmem,pcpu | head -n 6
 #                                         #
 ###########################################
 
-read nombre
-search_psg $nombre
+regPassenger
