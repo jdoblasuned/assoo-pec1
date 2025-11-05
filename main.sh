@@ -178,6 +178,22 @@ ask_name () {
   done
 }
 
+
+#############################################
+#       Solicitar datos del pasajero        #
+#############################################
+
+ask_data () {
+  read -r -p "Nombre y apellidos del pasajero: "   name
+  read -r -p "Identificador del vuelo: "           flight
+  read -r -p "Día del vuelo: "                     day
+  read -r -p "Mes del vuelo (numérico): "          month
+  read -r -p "Año del vuelo: "                     year
+  read -r -p "Destino: "                           destination
+}
+
+
+
 ###########################################
 #                                         #
 #          Funciones del programa         #
@@ -189,32 +205,46 @@ ask_name () {
 #############################################
 #          Registrar pasajeros              #
 #############################################
+ 
 
-regPassenger () {
-  ask_name 
-  printf "Identificador del vuelo: "
-  read flight
-  ask_date
-  printf "Destino: "
-  read destination
+register_passenger () {
+  local name=$1
+  local flight=$2 
+  local day=$3
+  local month=$4 
+  local year=$5 
+  local destination=$6
 
-  # Se guarda un archivo temporal para hacer una comprobación de que se ha pasado al registro
-  echo $name'|'$flight'|'$day'|'$(n2t_month $n_month)'|'$year'|'$destination > ./temp.txt
-  cat ./temp.txt >> ./registros.txt
-
-  # Confirmación de pasajero añadido al registro
-  # Al imprimir el END las variables mantienen el valor del último registro que almacenan
-  # en este caso, el último añadido.
-  if  [[ "$(tail -n 1 ./registros.txt)" == "$(cat ./temp.txt)" ]]
-  then
-    printf "\nRegistro completado con éxito\n"
-    awk -F'|' 'BEGIN{printf "%-40s %-8s %-25s %-25s\n", "Nombre", "Vuelo", "Fecha", "Destino"}
-    END{printf "%-40s %-8s %-2s de %-10s de %-5s %-25s\n",$1,$2,$3,$4,$5,$6}' ./registros.txt
-    rm ./temp.txt
-  else
-    echo "Se ha producido un error" 
+  if  ! is_right_name "$name" ; then
+    echo "El nombre solo puede contener letras y espacios"
+    return 1
+  elif  ! is_right_date $day $month $year ; then
+    echo "Elige una fecha correcta" 
     return 1
   fi
+
+  #Almacenar los datos en archivo temporal y pasarlos al definitivo
+  echo $name'|'$flight'|'$day'|'$(n2t_month $month)'|'$year'|'$destination > ./temp.txt
+  cat ./temp.txt >> ./registros.txt
+
+  #Confirmar que el pasajero ha pasado al registro 
+  if  [[ "$(tail -n 1 ./registros.txt)" == "$(cat ./temp.txt)" ]]; then
+    printf "\nRegistro completado con éxito\n"
+    awk -F'|' -v OFS='|' 'BEGIN{printf "Nombre|Vuelo|Fecha|Destino\n" }
+    END{printf "%s   |%s   |%s de %s de %s   |%s\n",$1,$2,$3,$4,$5,$6}' ./registros.txt | column -t -s '|'
+    rm ./temp.txt
+    return 0
+  else
+    echo "Se ha producido un error al guardar"  
+    return 1
+  fi
+}
+
+ask_passenger () {
+  ask_data
+  until register_passenger "$name" "$flight" $day $month $year "$destination"; do 
+    ask_data 
+  done
 }
 
 ##############################################
@@ -258,17 +288,29 @@ del_by_num () {
   sed -i '' "$1d" ./registros.txt
 }
 
+confirm_del () {
+  local pass=$*
+  PS3= "Quieres eliminar a: \n $(gsed ""$n_pass"s" ./registros.txt) ?"
+  
+  select option in "Sí" "No"
+  do
+    case $REPLY in
+      1) del_by_num "$n_pass";;
+      2) break;;
+    esac
+  done    
+}
+
 del_pass () {
   local pass=$*
   local n_pass
+  local del
 
   cat ./registros.txt | grep -ni "$pass" | column -t -s '|'
   echo 'Confirma el pasajero a eliminar introduciendo el número al principio de la línea'
   read n_pass 
-  echo "Quieres borrar el pasajero: $(gsed -n ""$n_pass"p" ./registros.txt | column -t -s '|' )"
-  read n_pass
-  del_by_num $n_pass
-}
+
+  }
 
 
 ##############################################
@@ -291,7 +333,4 @@ ps -Acmo pid,command,pmem,pcpu | head -n 6
 #          Programa principal             #
 #                                         #
 ###########################################
-
-echo 'elige pasajero'
-read pasajero
-del_pass "$pasajero"
+reg_psg
