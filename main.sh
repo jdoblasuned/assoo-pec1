@@ -231,7 +231,7 @@ register_passenger () {
   if  [[ "$(tail -n 1 ./registros.txt)" == "$(cat ./temp.txt)" ]]; then
     printf "\nRegistro completado con éxito\n"
     awk -F'|' -v OFS='|' 'BEGIN{printf "Nombre|Vuelo|Fecha|Destino\n" }
-    END{printf "%s   |%s   |%s de %s de %s   |%s\n",$1,$2,$3,$4,$5,$6}' ./registros.txt | column -t -s '|'
+    END{printf "%s   |%s   |%s de %s de %s   |%s\n",$1,$2,$3,$4,$5,$6}' ./registros.txt 
     rm ./temp.txt
     return 0
   else
@@ -247,6 +247,7 @@ ask_passenger () {
   done
 }
 
+
 ##############################################
 #       Listar pasajeros de un vuelo         #
 ##############################################
@@ -260,10 +261,11 @@ list_flight () {
 #  awk -F '|' -v flight="$flight" 'BEGIN{ printf "\nPasajeros del vuelo %s:\n", flight } 
 #  $2 == flight { printf "- %-40s %-2s de %-10s de %-5s %-25s\n",$1,$3,$4,$5,$6 } ' ./registros.txt
 
-awk -F '|' -v OFS='|  ' -v flight="$flight" 'BEGIN{ printf "\nPasajeros del vuelo %s:\n", flight } 
-  $2 == flight { print $1,$3,$4 } ' ./registros.txt | column -t -s '|'
+awk -F '|' -v flight="$flight" 'BEGIN{ printf "\nPasajeros del vuelo %s:\n", flight } 
+  $2 == flight { printf "- %s    |%s de %s de %s    |%s\n", $1,$3,$4,$5,$6 } ' ./registros.txt | column -t -s '|'
 
 }
+
 
 ##############################################
 #            Buscar pasarjero                #
@@ -277,40 +279,39 @@ search_psg () {
 #  awk -F '|' -v name="$name" 'BEGIN{ printf "\nResultados encontrados:\n" } 
 #  tolower($1) ~ tolower(name) { printf "Pasajero: %-40s Vuelo: %-8s Fecha: %-2s de %-10s de %-8s Destino: %-25s\n",$1,$2,$3,$4,$5,$6 } ' ./registros.txt
   awk -F '|' -v name="$name" 'BEGIN{ printf "\nResultados encontrados:\n" } 
-  tolower($1) ~ tolower(name) { printf "Pasajero: %s    Vuelo: %s    Fecha: %s    Destino: %s\n",$1,$2,$3,$4 } ' ./registros.txt | column -t -s '|'
+  tolower($1) ~ tolower(name) { printf "Pasajero: %s    |Vuelo: %s    |Fecha: %s de %s de %s   |Destino: %s\n",$1,$2,$3,$4,$5,$6 } ' ./registros.txt | column -t -s '|'
 }
+
 
 ##############################################
 #            Eliminar pasajero               #
 ##############################################
 
-del_by_num () {
-  sed -i '' "$1d" ./registros.txt
-}
+### Función de búsqueda adaptada a la eliminación de pasajero ###
+# Se muestra el número de registro para poder elegir la coincidencia a eliminar
 
-confirm_del () {
-  local pass=$*
-  PS3= "Quieres eliminar a: \n $(gsed ""$n_pass"s" ./registros.txt) ?"
+del_pass () {
+  local name=$*
+  local n_pass
+
+  awk -F '|' -v name="$name" 'tolower($1) ~ tolower(name) {print NR "|" $0} ' ./registros.txt > registros_temp
+  awk -F '|' -v name="$name" 'BEGIN{ printf "\nCoincidencias:\n" } 
+  tolower($2) ~ tolower(name) { printf "Número de registro: %s    |Pasajero: %s    |Vuelo: %s    |Fecha: %s de %s de %s   |Destino: %s\n",$1,$2,$3,$4,$5,$6,$7 } ' ./registros_temp | column -t -s "|"
+
+  echo 'Confirma el pasajero a eliminar introduciendo el número de registro'
+  read n_pass 
+   
+  printf  "¿Quieres eliminar el registro: $(gsed -n ""$n_pass"p" ./registros.txt | column -t -s '|') ?\n"
   
   select option in "Sí" "No"
   do
     case $REPLY in
-      1) del_by_num "$n_pass";;
+      1) gsed -i  ""$n_pass"d" ./registros.txt; break;;
       2) break;;
     esac
   done    
+  rm registros_temp
 }
-
-del_pass () {
-  local pass=$*
-  local n_pass
-  local del
-
-  cat ./registros.txt | grep -ni "$pass" | column -t -s '|'
-  echo 'Confirma el pasajero a eliminar introduciendo el número al principio de la línea'
-  read n_pass 
-
-  }
 
 
 ##############################################
@@ -333,4 +334,5 @@ ps -Acmo pid,command,pmem,pcpu | head -n 6
 #          Programa principal             #
 #                                         #
 ###########################################
-reg_psg
+read -r -p "Introduce pass" pass 
+del_pass $pass
