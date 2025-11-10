@@ -2,9 +2,29 @@
 
 ###########################################
 #                                         #
+#         Archivos de registros           #
+#                                         #
+###########################################
+
+if [ ! -e ~/aeropuerto/data ]; then
+  if [ ! -e ~/aeropuerto ]; then 
+    mkdir ~/aeropuerto
+    touch ~/aeropuerto/data
+  else
+    touch ~/aeropuerto/data
+  fi 
+fi
+
+log=~/aeropuerto/data
+temp_log=~/aeropuerto/temp
+
+
+###########################################
+#                                         #
 #          Funciones auxiliares           #
 #                                         #
 ###########################################
+
 
 ###### Imprimir el menú de la aplicación #####
 
@@ -201,9 +221,9 @@ ask_data () {
 reg_number() {
   local name=$*
 
-  awk -F '|' -v name="$name" 'tolower($1) ~ tolower(name) {print NR "|" $0} ' data > temp 
+  awk -F '|' -v name="$name" 'tolower($1) ~ tolower(name) {print NR "|" $0} ' $log > $temp_log 
   awk -F '|' -v name="$name" 'BEGIN{ printf "\nCoincidencias:\n" } 
-  tolower($2) ~ tolower(name) { printf "\nNúmero de registro: %s    |Pasajero: %s    |Vuelo: %s    |Fecha: %s de %s de %s   |Destino: %s\n\n",$1,$2,$3,$4,$5,$6,$7 } ' temp | column -t -s "|"
+  tolower($2) ~ tolower(name) { printf "\nNúmero de registro: %s    |Pasajero: %s    |Vuelo: %s    |Fecha: %s de %s de %s   |Destino: %s\n\n",$1,$2,$3,$4,$5,$6,$7 } ' $temp_log | column -t -s "|"
 }
 
 
@@ -237,26 +257,26 @@ save_data () {
   fi
 
   #Almacenar los datos en archivo temporal
-  echo $name'|'$flight'|'$day'|'$month'|'$year'|'$destination > temp
+  echo $name'|'$flight'|'$day'|'$(n2t_month $month)'|'$year'|'$destination > $temp_log
 }
 
 save_passenger() {
 
   # Pasar los datos del archivo temporal al registro
-  cat temp >> data
+  cat $temp_log >> $log
 
   # Confirmar que el pasajero ha pasado al registro 
-  if  [[ "$(tail -n 1 data)" == "$(cat temp)" ]]; then
+  if  [[ "$(tail -n 1 $log)" == "$(cat $temp_log)" ]]; then
     printf "\nRegistro completado con éxito\n"
     awk -F'|' 'BEGIN{printf "Nombre|Vuelo|Fecha|Destino\n" }
-    END{printf "%s   |%s   |%s de %s de %s   |%s\n",$1,$2,$3,$4,$5,$6}' data | column -t -s '|'
+    END{printf "%s   |%s   |%s de %s de %s   |%s\n",$1,$2,$3,$4,$5,$6}' $log | column -t -s '|'
     return 0
   else
     echo "Se ha producido un error al guardar"  
     return 1
   fi
 
-  rm temp
+  rm $temp_log
 }
 
 ask_passenger () {
@@ -279,10 +299,10 @@ list_flight () {
   local flight=$1
 
 #  awk -F '|' -v flight="$flight" 'BEGIN{ printf "\nPasajeros del vuelo %s:\n", flight } 
-#  $2 == flight { printf "- %-40s %-2s de %-10s de %-5s %-25s\n",$1,$3,$4,$5,$6 } ' data
+#  $2 == flight { printf "- %-40s %-2s de %-10s de %-5s %-25s\n",$1,$3,$4,$5,$6 } ' $log
 
 awk -F '|' -v flight="$flight" 'BEGIN{ printf "\nPasajeros del vuelo %s:\n", flight } 
-$2 == flight { printf "- %s    |%s de %s de %s    |%s\n", $1,$3,$4,$5,$6 } ' data | column -t -s '|'
+$2 == flight { printf "- %s    |%s de %s de %s    |%s\n", $1,$3,$4,$5,$6 } ' $log | column -t -s '|'
 
 }
 
@@ -297,9 +317,9 @@ search_psg () {
   local name=$*
 
 #  awk -F '|' -v name="$name" 'BEGIN{ printf "\nResultados encontrados:\n" } 
-#  tolower($1) ~ tolower(name) { printf "Pasajero: %-40s Vuelo: %-8s Fecha: %-2s de %-10s de %-8s Destino: %-25s\n",$1,$2,$3,$4,$5,$6 } ' data
+#  tolower($1) ~ tolower(name) { printf "Pasajero: %-40s Vuelo: %-8s Fecha: %-2s de %-10s de %-8s Destino: %-25s\n",$1,$2,$3,$4,$5,$6 } ' $log
   awk -F '|' -v name="$name" 'BEGIN{ printf "\nResultados encontrados:\n" } 
-  tolower($1) ~ tolower(name) { printf "Pasajero: %s    |Vuelo: %s    |Fecha: %s de %s de %s   |Destino: %s\n",$1,$2,$3,$4,$5,$6 } ' data | column -t -s '|'
+  tolower($1) ~ tolower(name) { printf "Pasajero: %s    |Vuelo: %s    |Fecha: %s de %s de %s   |Destino: %s\n",$1,$2,$3,$4,$5,$6 } ' $log | column -t -s '|'
 }
 
 
@@ -319,16 +339,16 @@ del_pass () {
   echo 'Confirma el pasajero a eliminar introduciendo el número de registro'
   read n_pass 
    
-  printf  "¿Quieres eliminar el registro: $(awk -F '|' -v num="$n_pass" 'NR==num {printf "%s  |%s  |%s de %s de %s  |%s\n", $1,$2,$3,$4,$5,$6}' data | column -t -s '|') ?\n"
+  printf  "¿Quieres eliminar el registro: $(awk -F '|' -v num="$n_pass" 'NR==num {printf "%s  |%s  |%s de %s de %s  |%s\n", $1,$2,$3,$4,$5,$6}' $log | column -t -s '|') ?\n"
   
   select option in "Sí" "No"
   do
     case $REPLY in
-      1) gsed -i  ""$n_pass"d" data; break;;
+      1) gsed -i  ""$n_pass"d" $log; break;;
       2) break;;
     esac
   done    
-  rm temp 
+  rm $temp_log 
 }
 
 
@@ -344,7 +364,7 @@ modif_psgr () {
   read -r -p "Confirma el registro a modificar con el número de registro: " n_pass
   
   
-  printf  "Registro: $(awk -F '|' -v num="$n_pass" 'NR==num {printf "%s  |%s  |%s de %s de %s  |%s\n", $1,$2,$3,$4,$5,$6}' data | column -t -s '|')\n"
+  printf  "Registro: $(awk -F '|' -v num="$n_pass" 'NR==num {printf "%s  |%s  |%s de %s de %s  |%s\n", $1,$2,$3,$4,$5,$6}' $log | column -t -s '|')\n"
   echo '#################'
   echo '¿Quieres modificarlo?'
   echo '#################'
@@ -361,12 +381,12 @@ modif_psgr () {
 modif_data (){
   local name flight day month year destination
 
-  name="$(awk -F '|' -v num=$1 'NR==num{print $1}' data)"
-  flight="$(awk -F '|' -v num=$1 'NR==num{print $2}' data)"
-  day="$(awk -F '|' -v num=$1 'NR==num{print $3}' data)"
-  month="$(awk -F '|' -v num=$1 'NR==num{print $4}' data)"
-  year="$(awk -F '|' -v num=$1 'NR==num{print $5}' data)"
-  destination="$(awk -F '|' -v num=$1 'NR==num{print $6}' data)"
+  name="$(awk -F '|' -v num=$1 'NR==num{print $1}' $log)"
+  flight="$(awk -F '|' -v num=$1 'NR==num{print $2}' $log)"
+  day="$(awk -F '|' -v num=$1 'NR==num{print $3}' $log)"
+  month="$(awk -F '|' -v num=$1 'NR==num{print $4}' $log)"
+  year="$(awk -F '|' -v num=$1 'NR==num{print $5}' $log)"
+  destination="$(awk -F '|' -v num=$1 'NR==num{print $6}' $log)"
 
   printf "\n***************\nDatos actuales:\n***************\n\nNombre: $name \nVuelo: $flight \nFecha: $day de $month de $year \nDestino: $destination \n\n"
 
@@ -397,9 +417,9 @@ modif_data (){
              return 1
            fi;;
         4) read -r -p "Destino: " destination;;
-        5) echo $name'|'$flight'|'$day'|'$month'|'$year'|'$destination > temp
-           gsed -i "${n_pass}c$(cat temp)" data
-           rm temp
+        5) echo $name'|'$flight'|'$day'|'$month'|'$year'|'$destination > $temp_log
+           gsed -i "${n_pass}c$(cat $temp_log)" $log
+           rm $temp_log
            break 2;;
         6) break 2;;
        esac
@@ -425,5 +445,6 @@ ps -Acmo pid,command,pmem,pcpu | head -n 6
 #          Programa principal             #
 #                                         #
 ###########################################
-read -r -p "dame nombre" nombre 
-modif_psgr $nombre
+
+ask_passenger
+
