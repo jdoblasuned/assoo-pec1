@@ -273,7 +273,7 @@ modif_data (){
            fi;;
         4) read -p "Destino: " destination;;
         5) echo $name'|'$flight'|'$day'|'$month'|'$year'|'$destination > $temp_log
-           gsed -i "${n_pass}c$(cat $temp_log)" $log
+           sed -i "${n_pass}c$(cat $temp_log)" $log
            rm $temp_log
            break 2;;
         6) rm $temp_log
@@ -393,7 +393,7 @@ del_passenger () {
     select option in "Sí" "No"
     do
       case $REPLY in
-        1) gsed -i  ""$n_pass"d" $log; break;;
+        1) sed -i  ""$n_pass"d" $log; break;;
         2) break;;
       esac
     done    
