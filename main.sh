@@ -11,7 +11,6 @@ shopt -s extglob
 #         Gestión de las fechas           #
 ###########################################
 
-
 # Verificar números enteros
 is_integer(){
   [[ "$1" == +([0-9]) ]]
@@ -21,7 +20,7 @@ is_integer(){
 leap_year() {
   local year="$1"
 
-  # El año es bisiesto cuando es múltiplo de 4 con excepción de los que son múltiplos de 100.
+ # El año es bisiesto cuando es múltiplo de 4 con excepción de los que son múltiplos de 100.
   # Salvo los que también lo son de 400 que serían también bisiestos.
   if (( (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0) )); then
     return 0
@@ -49,7 +48,6 @@ month_days() {
   echo $max_days
 }
 
-
 ### Comprobar que la fecha tiene un formato correcto ###
 is_right_date(){
   local day="$1" 
@@ -64,7 +62,8 @@ is_right_date(){
      return 0
    else
      return 1 
-   fi  }
+   fi  
+  }
 
   # Mes correcto
   # Comprueba si es un entero entre 1 y 12
@@ -108,7 +107,7 @@ ask_date () {
   done
 }
 
-### Convertir meses numéricos a texto ###
+## Convertir meses numéricos a texto ###
 n2t_month () {
   local n_month="$1"
   local month
@@ -155,7 +154,6 @@ ask_name () {
   done
 }
 
-
 ###########################################
 #      Gestionar datos del pasajero       #
 ###########################################
@@ -185,6 +183,7 @@ save_data () {
 # Guardar la información del archivo temporal en el archivo de registro
 # Notificar si se ha guardado la información correctamente
 # Eliminar el archivo temporal
+
 save_passenger() {
   cat $temp_log >> $log
 
@@ -204,7 +203,7 @@ save_passenger() {
 }
 
 
-###########################################
+##########################################
 #       Mostrar número de registro        # 
 ###########################################
 # Busca una coincidencia de texto en los nombres del registro
@@ -214,7 +213,7 @@ reg_number() {
   local name="$*"
   local n_regs
 
-  awk -F '|' -v name="$name" 'tolower($1) ~ tolower(name) {print NR "|" $0} ' $log > $temp_log 
+awk -F '|' -v name="$name" 'tolower($1) ~ tolower(name) {print NR "|" $0} ' $log > $temp_log 
   n_regs=$(wc -l < "$temp_log")
   if [ "$n_regs" -eq 0 ]; then
     echo 'No hay ninguna coincidencia'
@@ -297,7 +296,7 @@ modif_data (){
 ###########################################
 #          Registrar pasajeros            #
 ###########################################
- 
+
 # Función para el menú o invocar la opción desde shell pero sin argumentos
 menu_register() {
   local name flight day month year destination 
@@ -312,7 +311,7 @@ menu_register() {
   register_passenger "$name" "$flight" "$day" "$month" "$year" "$destination"
 }
 
-# Regsitrar pasarjeros y vuelos con los datos introducidos como argumentos
+# Regsitrar pasajeros y vuelos con los datos introducidos como argumentos
 register_passenger () {
   if save_data "$1" "$2" "$3" "$4" "$5" "$6"; then
     save_passenger
@@ -321,7 +320,6 @@ register_passenger () {
     return 1
   fi
 }
-
 
 ############################################
 #      Listar pasajeros de un vuelo        #
@@ -379,6 +377,7 @@ menu_del () {
   del_passenger "$name"
 }
 
+
 # Busca coincidencias de texto 
 # Se muestra el número de registro para poder elegir la coincidencia a eliminar
 del_passenger () {
@@ -400,7 +399,6 @@ del_passenger () {
   fi 
   rm $temp_log 
 }
-
 
 ###########################################
 #            Modificar registro           #
@@ -447,9 +445,8 @@ modif_passenger () {
 # Procesos con mayor uso de memoria
 next_flights () {
 echo "Próximos vuelos: " 
-ps -Acmo pid,command,pmem,pcpu | head -n 6
+ps -eo pid,comm,pmem,pcpu --sort=-pmem | head -n 6
 }
-
 
 ###########################################
 #                                         #
@@ -478,7 +475,6 @@ init_storage () {
   temp_log=~/aeropuerto/temp
 }
 
-
 ###########################################
 #                 Menú                    #
 ###########################################
@@ -498,6 +494,7 @@ menu () {
       echo "         =============================================="
       read -p "Seleccione una opción [1-7]: " opcion
 
+
     case $opcion in
       1) menu_register;;
       2) menu_list;;
@@ -506,18 +503,17 @@ menu () {
       5) menu_modif;;
       6) next_flights;;
       7) echo "Saliendo del programa"
+         rm $temp_log
          sleep 1
          break;;
       *) echo "Opción inválida"
          sleep 1;;
-
     esac
 
       echo
       read -p "Presione Enter para continuar..."
   done
 }
-
 
 ###########################################
 #                 MAIN                    #
